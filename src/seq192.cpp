@@ -114,7 +114,7 @@ nsm_open_cb(const char *name, const char *display_name, const char *client_id, c
     nsm_optional_gui_support = strstr(nsm_get_session_manager_features(nsm), "optional-gui");
     mkdir(nsm_folder.c_str(), 0777);
     // make sure nsm server doesn't override cached visibility state
-    nsm_send_is_shown(nsm);
+    //nsm_send_is_shown(nsm); // NOTE: Unofficial code edit.
     return ERR_OK;
 }
 
@@ -141,6 +141,12 @@ main (int argc, char *argv[])
     {
         for (int j=0; j<128; j++)
             global_user_keymap_definitions[i].keys_active[j] = false;
+    }
+
+    {
+    /* NOTE unofficial pseudo code addition: set oscport from environment variable, for use in non-session-manager (NSM) without the need for cli arguments. 
+     * this doesn't work for OSC, when using multiple instances of seq192, it needs a free port. 
+    * global_oscport = getenv( "SEQ192_OSCPORT" ); */
     }
 
     /* parse parameters */
@@ -221,6 +227,35 @@ main (int argc, char *argv[])
 
     }
 
+    
+
+    {
+
+    /* NOTE: unofficial code addition, use options without the need for cli arguments for use in non-session-manager (NSM).
+     * Based on code from non-mixer by J. Liles. */
+
+        char *name = strdup( argv[0] );
+        char *n = basename( name );
+        if ( ! strcmp( n, "seq192-jt" ) ) {
+            global_with_jack_transport = true;
+        } else if ( ! strcmp( n, "seq192-noui") ) {
+            global_no_gui = true;
+        } else if ( ! strcmp( n, "seq192-noui-jt") ) {
+            global_no_gui = true; 
+            global_with_jack_transport = true;
+        }
+
+        free( name );
+
+        if ( NULL == getenv("DISPLAY") )
+        {
+            printf("Not running UI: $DISPLAY environment variable unset\n");
+            global_no_gui = true;
+        }
+    }
+
+
+    
     // nsm
     const char *nsm_url = getenv( "NSM_URL" );
     if (nsm_url) {
@@ -339,7 +374,6 @@ main (int argc, char *argv[])
             global_is_running = false;
             application->quit();
         });
-
 
         status = application->run(window);
         #endif
